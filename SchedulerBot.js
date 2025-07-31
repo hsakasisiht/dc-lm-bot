@@ -290,7 +290,7 @@ class SchedulerBot {
         }
 
         if (this.cronJobs.has(scheduleId)) {
-            this.cronJobs.get(scheduleId).destroy();
+            this.cronJobs.get(scheduleId).stop();
             this.cronJobs.delete(scheduleId);
         }
 
@@ -321,7 +321,7 @@ class SchedulerBot {
         let removedCount = 0;
         for (const [scheduleId, schedule] of channelSchedules) {
             if (this.cronJobs.has(scheduleId)) {
-                this.cronJobs.get(scheduleId).destroy();
+                this.cronJobs.get(scheduleId).stop();
                 this.cronJobs.delete(scheduleId);
             }
             this.schedules.delete(scheduleId);
@@ -397,7 +397,7 @@ class SchedulerBot {
                 .setDescription(pages[i])
                 .setFooter({ text: `Page ${i + 1}/${pages.length}` });
 
-            await message.followUp({ embeds: [pageEmbed] });
+            await message.channel.send({ embeds: [pageEmbed] });
         }
     }
 
@@ -560,7 +560,7 @@ class SchedulerBot {
         // Stop all cron jobs
         for (const [scheduleId, job] of this.cronJobs) {
             try {
-                job.destroy();
+                job.stop();
                 console.log(`✅ Stopped cron job: ${scheduleId}`);
             } catch (error) {
                 console.error(`❌ Error stopping cron job ${scheduleId}:`, error);
