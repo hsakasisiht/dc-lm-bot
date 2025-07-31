@@ -354,17 +354,51 @@ class SchedulerBot {
             return message.reply({ embeds: [embed] });
         }
 
-        const scheduleList = channelSchedules
-            .map(schedule => `⏰ **${schedule.time}** - ${schedule.message}`)
-            .join('\n');
+        // Create paginated schedule list to handle Discord's 4096 character limit
+        const scheduleLines = channelSchedules
+            .map(schedule => `⏰ **${schedule.time}** - ${schedule.message}`);
 
+        // Split into chunks that fit within Discord's limits
+        const maxCharsPerPage = 3800; // Leave room for title and footer
+        let currentPage = '';
+        let pages = [];
+        
+        for (const line of scheduleLines) {
+            if ((currentPage + line + '\n').length > maxCharsPerPage) {
+                if (currentPage) pages.push(currentPage.trim());
+                currentPage = line + '\n';
+            } else {
+                currentPage += line + '\n';
+            }
+        }
+        if (currentPage) pages.push(currentPage.trim());
+
+        // If no pages (empty), create a default page
+        if (pages.length === 0) pages.push('No schedules to display');
+
+        // Send first page (or only page if small enough)
         const embed = new EmbedBuilder()
             .setColor('#74b9ff')
             .setTitle('📅 Channel Schedules')
-            .setDescription(scheduleList)
-            .setFooter({ text: `${channelSchedules.length} schedule(s) in this channel` });
+            .setDescription(pages[0])
+            .setFooter({ 
+                text: pages.length > 1 
+                    ? `Page 1/${pages.length} • ${channelSchedules.length} total schedule(s) • Use !clearschedules to remove all`
+                    : `${channelSchedules.length} schedule(s) in this channel • Use !clearschedules to remove all`
+            });
 
-        message.reply({ embeds: [embed] });
+        await message.reply({ embeds: [embed] });
+
+        // Send additional pages if needed
+        for (let i = 1; i < pages.length; i++) {
+            const pageEmbed = new EmbedBuilder()
+                .setColor('#74b9ff')
+                .setTitle(`📅 Channel Schedules (continued)`)
+                .setDescription(pages[i])
+                .setFooter({ text: `Page ${i + 1}/${pages.length}` });
+
+            await message.followUp({ embeds: [pageEmbed] });
+        }
     }
 
     async handleHelpCommand(message) {
